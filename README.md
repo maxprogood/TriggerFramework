@@ -3,7 +3,7 @@ This project will make your work with triggers easier.
 To use the project, you should create your own organization.</br>
 [Please see guide for scratch org creation at path.](https://github.com/maxprogood/TriggerFramework/blob/master/FrameWork/Create%20Scrch%20Org.md)</br>
 ## Brief description of the project.
-![Trigger Framework](UML-Triggerframework.png)
+![Trigger Framework](FrameWork/UML-TriggerFramework.png)
 
 
 Trigger contains one line of calling the framework class as well as all  trigger events.
