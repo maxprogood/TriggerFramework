@@ -1,18 +1,70 @@
-# Salesforce DX Project: Next Steps
+# Triggerframework
+This project will make your work with triggers easier.
+To use the project, you should create your own organization.</br>
+[Please see guide for scratch org creation at path.](https://github.com/maxprogood/TriggerFramework/blob/master/FrameWork/Create%20Scrch%20Org.md)</br>
+## Brief description of the project.
+<image src="C:\Users\maxpr\Desktop\UML-Triggerframework.png" alt="Trigger Handler Framework">
 
-Now that you’ve created a Salesforce DX project, what’s next? Here are some documentation resources to get you started.
 
-## How Do You Plan to Deploy Your Changes?
+Trigger contains one line of calling the framework class as well as all  trigger events.
+~~~
+trigger AccountTrigger on Account (before insert, before update, before delete, after insert, after update, after delete, after undelete) {
+        TriggerFramework.run();
+}
+~~~
+After that, the class trigger framework is called.</br>
+It takes information from custom metadata and populates the map with information about the handler.
+~~~
+private static final Map<String, List<TriggerHandlerConfig__mdt>>CONFIG_BY_TYPE = new Map<String, List<TriggerHandlerConfig__mdt>>();
 
-Do you want to deploy a set of changes, or create a self-contained application? Choose a [development model](https://developer.salesforce.com/tools/vscode/en/user-guide/development-models).
-
-## Configure Your Salesforce DX Project
-
-The `sfdx-project.json` file contains useful configuration information for your project. See [Salesforce DX Project Configuration](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_ws_config.htm) in the _Salesforce DX Developer Guide_ for details about this file.
-
-## Read All About It
-
-- [Salesforce Extensions Documentation](https://developer.salesforce.com/tools/vscode/)
-- [Salesforce CLI Setup Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm)
-- [Salesforce DX Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_dev.meta/sfdx_dev/sfdx_dev_intro.htm)
-- [Salesforce CLI Command Reference](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/cli_reference.htm)
+    static {
+        for (TriggerHandlerConfig__mdt record : TriggerHandlerConfig__mdt.getAll().values()) {
+            if (!CONFIG_BY_TYPE.containsKey(record.ObjectName__c)) {
+                CONFIG_BY_TYPE.put(record.ObjectName__c, new List<TriggerHandlerConfig__mdt>());
+            } if (record.Active__c) {
+                CONFIG_BY_TYPE.get(record.ObjectName__c).add(record);
+            }
+        }
+    }
+~~~
+Then the run() method is called which, depending on the data received from the config, calls the desired handler.
+~~~
+    public static void run() {
+        for (TriggerHandlerConfig__mdt config : CONFIG_BY_TYPE.get(getSObjName())) {
+            TriggerHandler handler = (TriggerHandler) Type.forName(config.Handler__c).newInstance();
+            switch on Trigger.operationType {
+                when BEFORE_INSERT {
+                    handler.beforeInsert(Trigger.new);
+                }
+                when BEFORE_UPDATE {
+                    handler.beforeUpdate(Trigger.new, Trigger.oldMap);
+                }
+                when BEFORE_DELETE {
+                    handler.beforeDelete(Trigger.old);
+                }
+                when AFTER_INSERT {
+                    handler.afterInsert(Trigger.new);
+                }
+                when AFTER_UPDATE {
+                    handler.afterUpdate(Trigger.new, Trigger.oldMap);
+                }
+                when AFTER_DELETE {
+                    handler.afterDelete(Trigger.old);
+                }
+                when AFTER_UNDELETE {
+                    handler.afterUnDelete(Trigger.new);
+                }
+            }
+        }
+    }
+~~~
+I also want to pay attention to the method getSObjName() which returns a string that contains objectName for run() method.
+~~~
+private static String getSObjName() {
+        return Trigger.isDelete ?
+                String.valueOf(Trigger.old.getSObjectType()) :
+                String.valueOf(Trigger.new.getSObjectType());
+    }
+~~~
+Then the trigger framework calls the necessary methods from the handler and completes its work.<br/>
+[You can see examples of account handlers here...](https://github.com/maxprogood/TriggerFramework/blob/master/FrameWork/force-app/main/default/classes/AccountTriggerHandler.cls)
